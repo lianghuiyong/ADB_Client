@@ -12,14 +12,14 @@ import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.xml.stream.events.StartDocument;
 
 public class ADB_Client {
 
 	private static final String HOST = "localhost";
-	private static final int PORT = 9888;
-	private static final int Server_Port = 9877;
 	private static Socket socket = null;
 	private BufferedOutputStream out;
 	private BufferedInputStream in;
@@ -31,18 +31,21 @@ public class ADB_Client {
 		// TODO Auto-generated method stub
 		ADB_Client adb_Client = new ADB_Client();
 		adb_Client.init_adb_socket();
+		adb_Client.loopSendServer();
 		adb_Client.show_data();
 	}
 
 	private void init_adb_socket() {
 		// TODO 初始化ADB 端口号
 		try {
-			Runtime.getRuntime().exec("adb shell am broadcast -a NotifyServiceStop");
-			Thread.sleep(3000);
+			// Runtime.getRuntime().exec("adb shell am broadcast -a
+			// NotifyServiceStop");
+			// Thread.sleep(3000);
 			Runtime.getRuntime().exec("adb forward tcp:12580 tcp:12286");
 			Thread.sleep(3000);
-			Runtime.getRuntime().exec("adb shell am broadcast -a NotifyServiceStart");
-			Thread.sleep(3000);
+			// Runtime.getRuntime().exec("adb shell am broadcast -a
+			// NotifyServiceStart");
+			// Thread.sleep(3000);
 		} catch (IOException e3) {
 			e3.printStackTrace();
 		} catch (InterruptedException e) {
@@ -50,19 +53,13 @@ public class ADB_Client {
 			e.printStackTrace();
 		}
 
-		Socket socket = null;
-
 		try {
-			InetAddress serverAddr = null;
-			serverAddr = InetAddress.getByName("127.0.0.1");
-			System.out.println("TCP 1111" + "C: Connecting...");
-			socket = new Socket(serverAddr, 12580);
-			String str = "hi,wufenglong";
-			System.out.println("TCP 221122" + "C:RECEIVE");
+			System.out.println("C: Connecting...");
+			socket = new Socket(InetAddress.getByName("127.0.0.1"), 12580);
+			System.out.println("C: RECEIVE");
 
 			out = new BufferedOutputStream(socket.getOutputStream());
 			in = new BufferedInputStream(socket.getInputStream());
-
 		} catch (UnknownHostException e1) {
 			System.out.println("TCP 331133" + "ERROR:" + e1.toString());
 		} catch (Exception e2) {
@@ -71,12 +68,51 @@ public class ADB_Client {
 
 	}
 
+	// 接受安卓发送的数据显示在控制台
 	private void show_data() {
 		while (true) {
 			String string;
 			if ((string = readFromSocket(in)) != null) {
 				System.out.println(string);
 			}
+		}
+	}
+
+	//
+	private void loopSendServer() {
+		ExecutorService weatherPool = Executors.newSingleThreadExecutor(); // 采用线程池单一线程方式，防止被杀死
+		weatherPool.execute(new Runnable() {
+			@Override
+			public void run() {
+				// TODO Auto-generated method stub
+				try {
+					while (true) {
+						for (int i = 0; i < 10; i++) {
+							send(socket, "Hello ADB by client" + i);
+							System.out.println("Hello ADB by client");
+							Thread.sleep(2000);
+						}
+					}
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		});
+	}
+
+	// 发送数据到安卓服务器
+	private void send(Socket server, String str) {
+		try {
+			if (server != null) {
+				out.write(str.getBytes("utf-8"));
+				out.flush();
+			} else {
+				System.out.println("client NULL");
+			}
+
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 
