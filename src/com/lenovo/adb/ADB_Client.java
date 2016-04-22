@@ -42,14 +42,30 @@ public class ADB_Client {
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		ADB_Client adb_Client = new ADB_Client();
-		adb_Client.init_adb_socket();
-		adb_Client.loopSaveImg();;
+		adb_Client.adb_pull_to_PC();
+		//adb_Client.init_adb_socket();
+		//adb_Client.loopSaveImg();;
 		//adb_Client.show_data();
 	}
-
+	
+	private void adb_pull_to_PC(){
+		try {
+			
+			Runtime.getRuntime().exec("adb -s e3a06c65 remount");
+			Runtime.getRuntime().exec("adb -s e3a06c65 pull /storage/emulated/0/DCIM/Camera/  E:\\");
+			System.out.println("adb -s e3a06c65 pull /storage/emulated/0/DCIM/Camera/ E:\\");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	//adb套接字传输
 	private void init_adb_socket() {
 		// TODO 初始化ADB 端口号
 		try {
+			Runtime.getRuntime().exec("adb remount");
+			Runtime.getRuntime().exec("adb pull /DCIM/Camera/ D:\\");
 			Runtime.getRuntime().exec("adb forward tcp:11180 tcp:17786");
 			Thread.sleep(3000);
 			
@@ -69,7 +85,7 @@ public class ADB_Client {
 		}
 	}
 	
-	//接收服务器发送过来的数据
+	//二进制流接收服务器发送过来的数据
 	private void loopSaveImg() {
 		ExecutorService weatherPool = Executors.newSingleThreadExecutor(); // 采用线程池单一线程方式，防止被杀死
 		weatherPool.execute(new Runnable() {
@@ -149,32 +165,7 @@ public class ADB_Client {
 		});
 	}
 	
-	// 接受安卓发送的数据显示在控制台
-	private void show_data() {
-		while (true) {
-			String string;
-			if ((string = readFromSocket(in)) != null) {
-				System.out.println(string);
-			}
-		}
-	}
 
-
-	/* 从InputStream流中读数据 */
-	public static String readFromSocket(InputStream in) {
-		int MAX_BUFFER_BYTES = 4000;
-		String msg = "";
-		byte[] tempbuffer = new byte[MAX_BUFFER_BYTES];
-		try {
-			int numReadedBytes = in.read(tempbuffer, 0, tempbuffer.length);
-			msg = new String(tempbuffer, 0, numReadedBytes, "utf-8");
-
-			tempbuffer = null;
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return msg;
-	}
 	
 	public static int bytesToInt(byte[] bytes) {  
 	    int number = bytes[0] & 0xFF;  
