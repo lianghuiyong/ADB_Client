@@ -2,19 +2,19 @@ package com.lenovo.adb;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.PrintStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.apache.commons.logging.Log;
+import net.sf.json.JSONObject;
 
 public class ADB_Client {
-
 	private static Socket socket = null;
 	private BufferedWriter out;
 	private BufferedReader in;
@@ -27,16 +27,16 @@ public class ADB_Client {
 		ADB_Client adb_Client = new ADB_Client();
 		//adb_Client.adb_pull_to_PC();
 		adb_Client.init_adb_socket();
-		adb_Client.loopReadStr();;
-		//adb_Client.show_data();
+		adb_Client.loopReadStr();
+		adb_Client.loopSendStr();
 	}
 	
 	private void adb_pull_to_PC(){
 		try {
 			
 			Runtime.getRuntime().exec("adb -s e3a06c65 remount");
-			Runtime.getRuntime().exec("adb -s e3a06c65 pull /storage/emulated/0/DCIM/Camera/  E:\\");
-			System.out.println("adb -s e3a06c65 pull /storage/emulated/0/DCIM/Camera/ E:\\");
+			final Process process = Runtime.getRuntime().exec("adb -s e3a06c65 pull /storage/emulated/0/DCIM/Camera/  E:\\");
+			readProcessOutput(process);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -47,8 +47,8 @@ public class ADB_Client {
 	private void init_adb_socket() {
 		// TODO 初始化ADB 端口号
 		try {
-			Runtime.getRuntime().exec("adb remount");
-			Runtime.getRuntime().exec("adb forward tcp:11180 tcp:17786");
+			Runtime.getRuntime().exec("adb -s e3a06c65 remount");
+			Runtime.getRuntime().exec("adb -s e3a06c65 forward tcp:11180 tcp:17786");
 			Thread.sleep(3000);
 			
 			socket = new Socket(InetAddress.getByName("127.0.0.1"), 11180);
@@ -67,7 +67,7 @@ public class ADB_Client {
 		}
 	}
 	
-	//二进制流接收服务器发送过来的数据
+	//接收服务器发送过来的数据
 	private void loopReadStr() {
 		final char[] tempbuffer = new char[4000];
 		
@@ -78,8 +78,8 @@ public class ADB_Client {
 				try {
 					while (socket != null) {
 					
-						int numReadedBytes  = in.read(tempbuffer,0,tempbuffer.length);
-						String str_Recv = new String(tempbuffer, 0, numReadedBytes);
+						int numReadBytes  = in.read(tempbuffer,0,tempbuffer.length);
+						String str_Recv = new String(tempbuffer, 0, numReadBytes);
 						System.out.println(str_Recv);
 					} 
 				} catch (IOException e) {
@@ -97,23 +97,65 @@ public class ADB_Client {
 		});
 	}
 	
-
 	
-	public static int bytesToInt(byte[] bytes) {  
-	    int number = bytes[0] & 0xFF;  
-	   // "|="按位或赋值。  
-	    number |= ((bytes[1] << 8) & 0xFF00);  
-	    number |= ((bytes[2] << 16) & 0xFF0000);  
-	    number |= ((bytes[3] << 24) & 0xFF000000);  
-	    return number;  
-	}  
-	
-    //java 合并两个byte数组
-    public static byte[] byteMerger(byte[] byte_1, byte[] byte_2){
-        byte[] byte_3 = new byte[byte_1.length+byte_2.length];
-        System.arraycopy(byte_1, 0, byte_3, 0, byte_1.length);
-        System.arraycopy(byte_2, 0, byte_3, byte_1.length, byte_2.length);
-        return byte_3;
+	//发送数据到服务器
+	private void loopSendStr() {
+		ExecutorService weatherPool = Executors.newSingleThreadExecutor(); // 采用线程池单一线程方式，防止被杀死
+		weatherPool.execute(new Runnable() {
+			@Override
+			public void run() {
+				int i = 0;
+				JSONObject jsonObject = new JSONObject();
+				jsonObject.put("TakePicture", "10");
+				while(socket != null){	
+					try {
+						Thread.sleep(1000);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					try {
+						out.write(jsonObject.toString()+ i++);
+						out.flush();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}		
+					
+				}
+			}
+		});
+	}
+	/**
+     * 打印进程输出
+     *
+     * @param process 进程
+     */
+    private static void readProcessOutput(final Process process) {
+        // 将进程的正常输出在 System.out 中打印，进程的错误输出在 System.err 中打印
+        readProcess(process.getInputStream(), System.out);
+        readProcess(process.getErrorStream(), System.err);
     }
-	
+
+    // 读取输入流
+    private static void readProcess(InputStream inputStream, PrintStream out) {
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                out.println(line);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+
+            try {
+                inputStream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 }
