@@ -34,8 +34,8 @@ public class ADB_Client {
 	private void adb_pull_to_PC(){
 		try {
 			
-			Runtime.getRuntime().exec("adb -s e3a06c65 remount");
-			final Process process = Runtime.getRuntime().exec("adb -s e3a06c65 pull /storage/emulated/0/DCIM/Camera/  E:\\");
+			Runtime.getRuntime().exec("adb -s WAWJMHNDON remount");
+			final Process process = Runtime.getRuntime().exec("adb -s WAWJMHNDON pull /storage/emulated/0/DCIM/Camera/  E:\\");
 			readProcessOutput(process);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -47,16 +47,18 @@ public class ADB_Client {
 	private void init_adb_socket() {
 		// TODO 初始化ADB 端口号
 		try {
-			Runtime.getRuntime().exec("adb -s e3a06c65 remount");
-			Runtime.getRuntime().exec("adb -s e3a06c65 forward tcp:11180 tcp:17786");
-			Thread.sleep(3000);
+			
+			Runtime.getRuntime().exec("adb -s WAWJMHNDON remount");			
+			Runtime.getRuntime().exec("adb -s WAWJMHNDON forward tcp:11180 tcp:17786");
+
+			Thread.sleep(1000);
 			
 			socket = new Socket(InetAddress.getByName("127.0.0.1"), 11180);
 			System.out.println("C: Connecting...");
 			if(socket != null){
 				System.out.println("C: RECEIVE");
 				out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-				in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+				in = new BufferedReader(new InputStreamReader(socket.getInputStream(),"UTF-8"));
 			}
 			
 		} catch (IOException e3) {
@@ -78,20 +80,13 @@ public class ADB_Client {
 				try {
 					while (socket != null) {
 					
-						int numReadBytes  = in.read(tempbuffer,0,tempbuffer.length);
+						int numReadBytes  = in.read(tempbuffer);
 						String str_Recv = new String(tempbuffer, 0, numReadBytes);
 						System.out.println(str_Recv);
 					} 
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
-					//e.printStackTrace();
-					try {
-						System.out.println("服务器已关闭");
-						socket.close();
-					} catch (IOException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					}
+					e.printStackTrace();
 				}
 			}
 		});
@@ -103,25 +98,57 @@ public class ADB_Client {
 		ExecutorService weatherPool = Executors.newSingleThreadExecutor(); // 采用线程池单一线程方式，防止被杀死
 		weatherPool.execute(new Runnable() {
 			@Override
-			public void run() {
-				int i = 0;
-				JSONObject jsonObject = new JSONObject();
-				jsonObject.put("TakePicture", "10");
+			public void run() {			
 				while(socket != null){	
 					try {
-						Thread.sleep(1000);
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					try {
-						out.write(jsonObject.toString()+ i++);
+						JSONObject jsonObject1 = new JSONObject();
+						jsonObject1.put("Fun", "CARD");
+						out.write(jsonObject1.toString());
 						out.flush();
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}		
+						Thread.sleep(10000);
+						
+						JSONObject jsonObject2 = new JSONObject();
+						jsonObject2.put("Fun", "FINGER");
+						out.write(jsonObject2.toString());
+						out.flush();
+						Thread.sleep(10000);
 					
+						JSONObject jsonObject3 = new JSONObject();
+						jsonObject3.put("Fun", "RECOGNIZE");
+						out.write(jsonObject3.toString());
+						out.flush();
+						Thread.sleep(10000);
+					
+						JSONObject jsonObject4 = new JSONObject();
+						jsonObject4.put("Fun", "AVATAR");
+						out.write(jsonObject4.toString());
+						out.flush();
+						Thread.sleep(10000);
+					
+						JSONObject jsonObject5 = new JSONObject();
+						jsonObject5.put("Fun", "A4");
+						out.write(jsonObject5.toString());
+						out.flush();
+						Thread.sleep(10000);
+					
+						JSONObject jsonObject6 = new JSONObject();
+						jsonObject6.put("Fun", "MATTER");
+						out.write(jsonObject6.toString());
+						out.flush();
+						Thread.sleep(10000);
+					
+					} catch (InterruptedException |IOException e) {
+						// TODO Auto-generated catch block
+						//e.printStackTrace();
+						try {
+							socket.close();
+							socket = null;
+						} catch (IOException e1) {
+							// TODO Auto-generated catch block
+							//e1.printStackTrace();
+						}
+						
+					} 
 				}
 			}
 		});
